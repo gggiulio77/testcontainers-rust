@@ -55,11 +55,70 @@ async fn get_todo(pool: &PgPool, id: i64) -> Result<Option<Todo>, Box<dyn std::e
 mod tests {
 
     use super::*;
-    use testcontainers::runners::AsyncRunner;
+    use testcontainers::{core::WaitFor, runners::AsyncRunner, GenericImage};
     use testcontainers_modules::postgres::Postgres;
 
-    #[tokio::test(flavor = "current_thread")]
-    async fn test_add_todo() -> Result<(), Box<dyn std::error::Error>> {
+    #[tokio::test]
+    async fn generic_image() -> Result<(), Box<dyn std::error::Error>> {
+        dotenv::dotenv().ok();
+
+        println!("Creating db container");
+
+        let container = GenericImage::new("postgres", "13.3-alpine")
+            .with_exposed_port(5432)
+            .with_env_var("POSTGRES_PASSWORD", "testing")
+            .with_env_var("POSTGRES_USER", "testing")
+            .with_env_var("POSTGRES_DB", "todos")
+            .with_wait_for(WaitFor::message_on_stderr(
+                "database system is ready to accept connections",
+            ))
+            .with_wait_for(WaitFor::message_on_stderr(
+                "database system is ready to accept connections",
+            ))
+            .start()
+            .await;
+
+        let host = container.get_host().await;
+        let port = container.get_host_port_ipv4(5432).await;
+
+        println!("Trying to connect to {:?}:{:?}", host, port);
+
+        let connection_string = format!("postgres://testing:testing@{}:{}/todos", host, port);
+
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&connection_string)
+            .await?;
+
+        println!("Running migration");
+
+        sqlx::migrate!("./migrations").run(&pool).await?;
+
+        println!("Migration complete");
+
+        let id = add_todo(&pool, "Search job".to_string()).await?;
+
+        let result = get_todo(&pool, id).await?;
+
+        assert_eq!(
+            result,
+            Some(Todo {
+                id,
+                description: "Search job".to_string(),
+                done: false
+            })
+        );
+
+        match result {
+            Some(todo) => println!("{:?}", todo),
+            None => println!("Something went wrong"),
+        };
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn postgres_module() -> Result<(), Box<dyn std::error::Error>> {
         dotenv::dotenv().ok();
 
         println!("Creating db container");
@@ -70,20 +129,6 @@ mod tests {
             .with_password("testing")
             .start()
             .await;
-
-        // let container = GenericImage::new("postgres", "latest")
-        //     .with_exposed_port(5432)
-        //     .with_env_var("POSTGRES_PASSWORD", "testing")
-        //     .with_env_var("POSTGRES_USER", "testing")
-        //     .with_env_var("POSTGRES_DB", "todos")
-        //     .with_wait_for(WaitFor::message_on_stderr(
-        //         "database system is ready to accept connections",
-        //     ))
-        //     // .with_wait_for(WaitFor::Duration {
-        //     //     length: Duration::from_secs(10),
-        //     // })
-        //     .start()
-        //     .await;
 
         let host = container.get_host().await;
         let port = container.get_host_port_ipv4(5432).await;
