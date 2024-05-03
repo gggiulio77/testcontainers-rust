@@ -1,5 +1,5 @@
 [package]
-name = "testcontainer-rust"
+name = "testcontainers-rust"
 version = "0.1.0"
 edition = "2021"
 

@@ -1989,17 +1989,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "testcontainer-rust"
-version = "0.1.0"
-dependencies = [
- "dotenv",
- "sqlx",
- "testcontainers",
- "testcontainers-modules",
- "tokio",
-]
-
-[[package]]
 name = "testcontainers"
 version = "0.16.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2029,6 +2018,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b65d0c0735921f8d7fd93867dd8add05bd805a77e9a1199e9a00e4de0c062c7"
 dependencies = [
  "testcontainers",
+]
+
+[[package]]
+name = "testcontainers-rust"
+version = "0.1.0"
+dependencies = [
+ "dotenv",
+ "sqlx",
+ "testcontainers",
+ "testcontainers-modules",
+ "tokio",
 ]
 
 [[package]]
